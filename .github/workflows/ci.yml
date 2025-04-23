@@ -45,7 +45,6 @@ jobs:
 
   quality-checks:
     name: Type-Check and Lint and Tests
-    if: (github.event_name == 'pull_request' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
 
     steps:
