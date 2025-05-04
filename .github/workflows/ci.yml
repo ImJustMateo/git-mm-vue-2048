@@ -5,13 +5,25 @@ name: CI
 on:
   push:
     branches: [main]
+    paths-ignore: # Ignore changes in docs folder
+      - "docs/**"
   pull_request:
+    paths-ignore: # Ignore changes in docs folder
+      - "docs/**"
   workflow_dispatch:
+    inputs: # Let choose to run static analysis or not
+      run_static_analysis:
+        description: "Run static analysis?"
+        required: true
+        default: "true"
+        type: choice
+        options: ["true", "false"]
+  schedule:
+    - cron: "0 8 * * 1" # Auto-run : every monday at 08:00 UTC
 
 jobs:
   build:
     name: Build and Upload
-    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && github.event.workflow == 'CI-Pipeline')
     runs-on: ubuntu-latest
 
     steps:
@@ -44,11 +56,16 @@ jobs:
         with:
           name: dist-artifact
           path: dist/
+          retention-days: ${{ github.ref == 'refs/heads/main' && 7 || 1 }}
+          # Retention days for main branch is 7 days, otherwise 1 day
 
   quality-checks:
-    name: Type-Check and Lint and Tests
-    if: (github.event_name == 'pull_request' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && github.event.workflow == 'CI-Pipeline')
+    name: Type-Check, Lint, Tests
     runs-on: ubuntu-latest
+    if: >
+      (github.event_name == 'pull_request' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'schedule') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.run_static_analysis == 'true')
 
     steps:
       - uses: actions/checkout@v3
