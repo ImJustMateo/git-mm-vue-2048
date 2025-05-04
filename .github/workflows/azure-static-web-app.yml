@@ -1,0 +1,59 @@
+name: Azure Static Web App
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build and Upload
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Cache pnpm store
+        uses: actions/cache@v3
+        with:
+          path: .pnpm-store
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
+
+      - name: Setup PNPM
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10
+
+      - name: Enable Corepack & Install dependencies
+        run: |
+          corepack enable
+          pnpm config set store-dir .pnpm-store
+          pnpm install
+
+      - name: Build the application
+        run: pnpm build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  deploy:
+    name: Deploy to Azure Static Web Apps in Production
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - name: Install Azure Static Web Apps CLI
+        run: npm install -g @azure/static-web-apps-cli
+
+      - name: Deploy to Azure
+        run: swa deploy ./dist --app-name ${{ secrets.AZURE_STATIC_WEB_APP_NAME }} --env production --deployment-token ${{ secrets.AZURE_STATIC_WEB_APP_TOKEN }}

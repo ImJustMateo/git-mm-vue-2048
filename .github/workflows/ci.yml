@@ -1,4 +1,6 @@
-name: CI-Pipeline
+# Author : Matéo Millet
+
+name: CI
 
 on:
   push:
