@@ -1,7 +1,18 @@
+# Author: Matéo Millet
+
 name: Azure Static Web App
 
 on:
   workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment to deploy"
+        required: true
+        default: "production"
+        type: choice
+        options:
+          - production
+          - qa
 
 jobs:
   build:
@@ -41,7 +52,7 @@ jobs:
           path: dist/
 
   deploy:
-    name: Deploy to Azure Static Web Apps in Production
+    name: Deploy to Azure Static Web Apps on prod or qa
     needs: build
     runs-on: ubuntu-latest
 
@@ -56,4 +67,9 @@ jobs:
         run: npm install -g @azure/static-web-apps-cli
 
       - name: Deploy to Azure
-        run: swa deploy ./dist --app-name ${{ secrets.AZURE_STATIC_WEB_APP_NAME }} --env production --deployment-token ${{ secrets.AZURE_STATIC_WEB_APP_TOKEN }}
+        run: |
+          if [ "${{ github.event.inputs.environment }}" = "production" ]; then
+            swa deploy ./dist --app-name "${{ secrets.AZURE_PROD_APP_NAME }}" --env production --deployment-token "${{ secrets.AZURE_PROD_APP_TOKEN }}"
+          else
+            swa deploy ./dist --app-name "${{ secrets.AZURE_QA_APP_NAME }}" --env qa --deployment-token "${{ secrets.AZURE_QA_APP_TOKEN }}"
+          fi
